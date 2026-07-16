@@ -358,7 +358,7 @@ function clearHighlight() {
 }
 
 // 加载中国地图 GeoJSON
-fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+fetch('./china.json')
   .then(res => res.json())
   .then(geoJson => {
     document.getElementById('loadingHint').style.display = 'none';
