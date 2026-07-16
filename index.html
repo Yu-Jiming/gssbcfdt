@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>2026届高考10班 · 蹭饭地图</title>
+<script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+  :root {
+    --blue: #3a6fb5;
+    --blue-deep: #1a4d8f;
+    --bg: #f2f4f7;
+    --card: #fff;
+    --text: #2c3e50;
+    --text-light: #7f8c9b;
+    --border-light: #eef1f5;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ==================== 整体容器 ==================== */
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px 20px;
+  }
+
+  /* ==================== 顶部 ==================== */
+  .header {
+    padding: 18px 0 10px;
+    flex-shrink: 0;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #1a2b4c;
+    line-height: 1.3;
+  }
+  .header .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 22px;
+    margin-top: 5px;
+    font-size: 13.5px;
+    color: var(--text-light);
+  }
+  .header .stats span strong { color: var(--blue); font-weight: 600; }
+
+  /* ==================== 主体区域 ==================== */
+  .main {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  /* 地图面板 */
+  .map-panel {
+    flex: 1 1 0;
+    background: var(--card);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .map-panel .chart-wrap {
+    width: 100%;
+    height: 100%;
+  }
+  .map-panel .loading {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #aaa; font-size: 14px; z-index: 2; background: var(--card); border-radius: 10px;
+    pointer-events: none;
+  }
+
+  /* 名单面板 */
+  .list-panel {
+    flex: 0 0 340px;
+    background: var(--card);
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .list-panel .list-header {
+    flex-shrink: 0;
+    padding: 15px 18px 10px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #1a2b4c;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .list-panel .list-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 18px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .list-body::-webkit-scrollbar { width: 4px; }
+  .list-body::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 2px; }
+
+  .city-group {
+    margin-top: 12px;
+    padding: 10px 13px;
+    border-radius: 8px;
+    background: #f8f9fb;
+    border-left: 3px solid var(--blue);
+    transition: background .15s, border-color .15s;
+  }
+  .city-group.highlight {
+    background: #e8eff7;
+    border-left-color: var(--blue-deep);
+  }
+  .city-group .city-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+  .city-group .city-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a2b4c;
+  }
+  .city-group .city-count {
+    font-size: 12.5px;
+    color: var(--blue);
+    font-weight: 500;
+  }
+  .city-group .student-row {
+    font-size: 13px;
+    line-height: 1.75;
+    color: #4a5568;
+    padding: 1px 0;
+  }
+  .city-group .student-row .s-name { font-weight: 500; color: #2c3e50; }
+  .city-group .student-row .s-school { color: #718096; margin-left: 3px; }
+
+  /* ==================== 平板 ==================== */
+  @media (max-width: 1024px) {
+    .list-panel { flex: 0 0 280px; }
+    .header h1 { font-size: 21px; }
+  }
+
+  /* ==================== 手机 ==================== */
+  @media (max-width: 768px) {
+    .app {
+      height: auto;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 0 10px 16px;
+    }
+    .header {
+      padding: 12px 0 8px;
+    }
+    .header h1 {
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+    .header .stats {
+      font-size: 12px;
+      gap: 8px 14px;
+    }
+    .main {
+      flex-direction: column;
+      gap: 10px;
+      flex: none;
+    }
+    .map-panel {
+      height: 48vh;
+      height: 48dvh;
+      flex: none;
+      border-radius: 8px;
+    }
+    .list-panel {
+      flex: none;
+      max-height: none;
+      border-radius: 8px;
+    }
+    .list-panel .list-body {
+      padding: 2px 12px 12px;
+    }
+    .list-panel .list-header {
+      padding: 12px 14px 8px;
+      font-size: 13.5px;
+    }
+    .city-group {
+      margin-top: 10px;
+      padding: 8px 11px;
+    }
+    .city-group .city-name { font-size: 14px; }
+    .city-group .city-count { font-size: 11.5px; }
+    .city-group .student-row { font-size: 12.5px; line-height: 1.7; }
+  }
+
+  @media (max-width: 400px) {
+    .header h1 { font-size: 16px; }
+    .header .stats { font-size: 11px; gap: 6px 10px; }
+    .map-panel { height: 40vh; height: 40dvh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <h1>2026届高考（10）班 · 蹭饭地图</h1>
+    <div class="stats">
+      <span>共 <strong>29</strong> 位同学</span>
+      <span>分布在 <strong>14</strong> 座城市</span>
+      <span>跨越 <strong>11</strong> 个省/直辖市</span>
+      <span style="color:#b0b7c3">数据未全，持续更新</span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="map-panel" id="mapPanel">
+      <div class="loading" id="loadingHint">地图加载中…</div>
+      <div class="chart-wrap" id="chartWrap"></div>
+    </div>
+
+    <div class="list-panel" id="listPanel">
+      <div class="list-header">📍 按城市分布</div>
+      <div class="list-body" id="listBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  数据 —— 补充新录取结果，在这里增删条目即可
+//  来源：「2026届高考10班录取名单（含省市）.xlsx」
+// ============================================================
+const STUDENTS = [
+  { name:"姜春萌", school:"中国石油大学（北京）",    city:"北京",    province:"北京市" },
+  { name:"崔馨然", school:"中央民族大学",            city:"北京",    province:"北京市" },
+  { name:"石明慧", school:"北京林业大学",            city:"北京",    province:"北京市" },
+  { name:"宁荣欣", school:"中国石油大学（北京）",    city:"北京",    province:"北京市" },
+  { name:"韩美琦", school:"中央民族大学",            city:"北京",    province:"北京市" },
+  { name:"王紫琪", school:"中国农业大学",            city:"北京",    province:"北京市" },
+  { name:"笙音佳", school:"北京化工大学",            city:"北京",    province:"北京市" },
+
+  { name:"孙建勋", school:"南京邮电大学",            city:"南京",    province:"江苏省" },
+  { name:"陈瀚轩", school:"南京邮电大学",            city:"南京",    province:"江苏省" },
+  { name:"杨子萱", school:"南京邮电大学",            city:"南京",    province:"江苏省" },
+
+  { name:"梁钰函", school:"吉林农业大学",            city:"长春",    province:"吉林省" },
+
+  { name:"于馨然", school:"东北电力大学",            city:"吉林市",  province:"吉林省" },
+  { name:"张欣枘", school:"东北电力大学",            city:"吉林市",  province:"吉林省" },
+  { name:"刘博",   school:"东北电力大学",            city:"吉林市",  province:"吉林省" },
+  { name:"刘博轩", school:"东北电力大学",            city:"吉林市",  province:"吉林省" },
+  { name:"张珈毓", school:"东北电力大学",            city:"吉林市",  province:"吉林省" },
+  { name:"刘奥",   school:"东北电力大学",            city:"吉林市",  province:"吉林省" },
+
+  { name:"敖健元", school:"西安电子科技大学",        city:"西安",    province:"陕西省" },
+  { name:"李迦南", school:"西安电子科技大学",        city:"西安",    province:"陕西省" },
+  { name:"肖航",   school:"陕西科技大学",            city:"西安",    province:"陕西省" },
+
+  { name:"刘尚",   school:"上海交通大学",            city:"上海",    province:"上海市" },
+  { name:"周明辉", school:"云南大学",                city:"昆明",    province:"云南省" },
+  { name:"申金璐", school:"天津财经大学",            city:"天津",    province:"天津市" },
+  { name:"王毅航", school:"哈尔滨工业大学（威海）",  city:"威海",    province:"山东省" },
+  { name:"张芸菲", school:"东北林业大学",            city:"哈尔滨",  province:"黑龙江省" },
+  { name:"董佳贺", school:"北华航天工业学院",        city:"廊坊",    province:"河北省" },
+  { name:"康博",   school:"华中科技大学",            city:"武汉",    province:"湖北省" },
+  { name:"张雯淼", school:"吉林师范大学",            city:"四平",    province:"吉林省" },
+  { name:"张欣哲", school:"西北农林科技大学",        city:"咸阳",    province:"陕西省" },
+];
+
+// 城市 → 经纬度
+const CITY_COORDS = {
+  "北京":   [116.4074, 39.9042],
+  "南京":   [118.7969, 32.0603],
+  "长春":   [125.3245, 43.8868],
+  "吉林市": [126.5530, 43.8438],
+  "西安":   [108.9402, 34.3416],
+  "上海":   [121.4737, 31.2304],
+  "昆明":   [102.7123, 25.0406],
+  "天津":   [117.1902, 39.1252],
+  "威海":   [122.1204, 37.5131],
+  "哈尔滨": [126.6424, 45.7567],
+  "廊坊":   [116.6838, 39.0509],
+  "武汉":   [114.3054, 30.5931],
+  "四平":   [124.3698, 43.1702],
+  "咸阳":   [108.0837, 34.3294],
+};
+
+// ============================================================
+//  按城市分组（人数降序）
+// ============================================================
+function groupByCity(students) {
+  const map = new Map();
+  students.forEach(s => {
+    if (!map.has(s.city)) map.set(s.city, []);
+    map.get(s.city).push(s);
+  });
+  return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+}
+const cityGroups = groupByCity(STUDENTS);
+
+// ============================================================
+//  渲染名单
+// ============================================================
+function renderList() {
+  const body = document.getElementById('listBody');
+  let html = '';
+  cityGroups.forEach(([city, students]) => {
+    const province = students[0].province;
+    html += `<div class="city-group" data-city="${city}">
+      <div class="city-head">
+        <span class="city-name">${city}</span>
+        <span class="city-count">${students.length}人 · ${province}</span>
+      </div>`;
+    students.forEach(s => {
+      html += `<div class="student-row">
+        <span class="s-name">${s.name}</span>
+        <span class="s-school">${s.school}</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  body.innerHTML = html;
+}
+renderList();
+
+// ============================================================
+//  地图初始化
+// ============================================================
+const chartDom = document.getElementById('chartWrap');
+const chart = echarts.init(chartDom);
+
+// 根据屏幕宽度决定参数
+const vw = window.innerWidth;
+const isMobile  = vw < 768;
+const isTablet  = vw >= 768 && vw < 1024;
+
+const MAP_ZOOM       = isMobile ? 1.0  : 1.18;
+const SYMBOL_FACTOR  = isMobile ? 2.6  : 3.5;
+const LABEL_SIZE     = isMobile ? 9    : 11;
+const LABEL_DISTANCE = isMobile ? 3    : 6;
+
+function clearHighlight() {
+  document.querySelectorAll('.city-group').forEach(g => g.classList.remove('highlight'));
+}
+
+// 加载中国地图 GeoJSON
+fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+  .then(res => res.json())
+  .then(geoJson => {
+    document.getElementById('loadingHint').style.display = 'none';
+    echarts.registerMap('china', geoJson);
+
+    const scatterData = cityGroups.map(([city, students]) => {
+      const coords = CITY_COORDS[city] || [116.4, 39.9];
+      return {
+        name: city,
+        value: [...coords, students.length, city],
+        students: students,
+      };
+    });
+
+    const option = {
+      tooltip: {
+        trigger: 'item',
+        confine: true,
+        backgroundColor: '#fff',
+        borderColor: '#dde1e8',
+        borderWidth: 1,
+        padding: [10, 12],
+        textStyle: { color: '#2c3e50', fontSize: isMobile ? 11 : 13 },
+        formatter: function (p) {
+          if (!p.data || !p.data.students) return '';
+          const city = p.data.name;
+          const list = p.data.students.map(s => '  ' + s.name + ' · ' + s.school).join('<br/>');
+          return '<b style="font-size:' + (isMobile ? 13 : 15) + 'px">' + city + '</b>  ' + p.data.students.length + '人<br/>' + list;
+        },
+      },
+      geo: {
+        map: 'china',
+        roam: true,
+        zoom: MAP_ZOOM,
+        center: [105, 36],
+        scaleLimit: { min: 0.8, max: 5 },
+        itemStyle: {
+          areaColor: '#fafbfc',
+          borderColor: '#dce2e8',
+          borderWidth: 0.8,
+        },
+        emphasis: { disabled: true },
+        label: { show: false },
+      },
+      series: [{
+        type: 'scatter',
+        coordinateSystem: 'geo',
+        data: scatterData,
+        symbolSize: function (val) { return 12 + val[2] * SYMBOL_FACTOR; },
+        symbol: 'circle',
+        itemStyle: {
+          color: '#3a6fb5',
+          borderColor: '#fff',
+          borderWidth: 2,
+          shadowBlur: 8,
+          shadowColor: 'rgba(58,111,181,0.25)',
+        },
+        emphasis: {
+          scale: 1.35,
+          itemStyle: { color: '#1a4d8f' },
+        },
+        label: {
+          show: true,
+          formatter: function (p) { return p.data.name + '\n' + p.data.value[2] + '人'; },
+          color: '#2c3e50',
+          fontSize: LABEL_SIZE,
+          lineHeight: LABEL_SIZE + 5,
+          position: 'top',
+          distance: LABEL_DISTANCE,
+        },
+        encode: { tooltip: [0, 1, 3] },
+      }],
+    };
+
+    chart.setOption(option);
+
+    // 点击城市 → 右侧高亮 + 滚动
+    chart.on('click', function (params) {
+      if (params.componentType === 'series' && params.data && params.data.name) {
+        const city = params.data.name;
+        document.querySelectorAll('.city-group').forEach(g => {
+          if (g.dataset.city === city) {
+            g.classList.add('highlight');
+            g.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            g.classList.remove('highlight');
+          }
+        });
+      } else {
+        clearHighlight();
+      }
+    });
+  })
+  .catch(err => {
+    document.getElementById('loadingHint').innerText = '地图数据加载失败，请刷新重试。';
+    console.error('地图加载失败:', err);
+  });
+
+// 窗口变化 → echarts 自适应
+window.addEventListener('resize', () => chart.resize());
+
+// 点击地图或名单面板以外区域 → 取消高亮
+document.addEventListener('click', function (e) {
+  const insideMap  = document.getElementById('mapPanel').contains(e.target);
+  const insideList = document.getElementById('listPanel').contains(e.target);
+  if (!insideMap && !insideList) clearHighlight();
+});
+</script>
+</body>
+</html>
